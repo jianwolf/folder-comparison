@@ -110,7 +110,7 @@ def compare_file_pair(rel_path: str, file1: FileInfo, file2: FileInfo) -> dict:
     return make_result(rel_path, True, True, size_same, checksum_same)
 
 
-def compare_folders(folder1: Path, folder2: Path, output_csv: Path, workers: int) -> None:
+def compare_folders(folder1: Path, folder2: Path, output_csv: Path, workers: int, include_all: bool = False) -> None:
     """Compare two folders and write results to CSV."""
 
     # Scan both folders in parallel
@@ -159,12 +159,18 @@ def compare_folders(folder1: Path, folder2: Path, output_csv: Path, workers: int
 
     results.sort(key=lambda r: r['file_name'])
 
+    # Filter results unless --all is specified
+    if include_all:
+        output_results = results
+    else:
+        output_results = [r for r in results if not (r['size_same'] is True and r['checksum_same'] is True)]
+
     # Write CSV
     print(f"Writing results to: {output_csv}")
     with open(output_csv, 'w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
         writer.writeheader()
-        writer.writerows(results)
+        writer.writerows(output_results)
 
     # Summary
     same_content = sum(1 for r in results if r['checksum_same'] is True)
@@ -196,6 +202,11 @@ def main() -> int:
         default=DEFAULT_WORKERS,
         help=f'Number of worker threads (default: {DEFAULT_WORKERS})'
     )
+    parser.add_argument(
+        '-a', '--all',
+        action='store_true',
+        help='Include identical files in output (by default only differences are shown)'
+    )
 
     args = parser.parse_args()
 
@@ -207,7 +218,7 @@ def main() -> int:
         print(f"Error: {args.folder2} is not a directory", file=sys.stderr)
         return 1
 
-    compare_folders(args.folder1, args.folder2, args.output, args.workers)
+    compare_folders(args.folder1, args.folder2, args.output, args.workers, args.all)
     return 0
 
 
