@@ -188,7 +188,7 @@ def compare_folders(folder1: Path, folder2: Path, output_csv: Path, workers: int
 
     # Write CSV (filter to differences unless --all)
     output_results = results if include_all else [r for r in results if not is_identical(r)]
-    print(f"Writing results to: {output_csv}")
+    print(f"\nWriting results to: {output_csv}")
     with open(output_csv, 'w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
         writer.writeheader()
@@ -203,6 +203,7 @@ def compare_folders(folder1: Path, folder2: Path, output_csv: Path, workers: int
     print(f"  In both folders:  {common_count}")
     print(f"    - Identical:    {identical_count}")
     print(f"    - Different:    {different_count}")
+
 
 # CLI Entry Point
 
