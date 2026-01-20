@@ -6,7 +6,7 @@ Python CLI tools for comparing directories and finding duplicate files.
 
 | Tool | Purpose |
 |------|---------|
-| `folder_comparison.py` | Compare two directories, report differences |
+| `folder_comparison.py` | Compare two directories, report differences to CSV |
 | `find_duplicates.py` | Find duplicate files within a directory |
 
 ## Requirements
@@ -50,15 +50,15 @@ python folder_comparison.py folder1 folder2 --checksum -o results.csv
 
 CSV columns:
 
-| Column | Description |
-|--------|-------------|
+| Column | Values |
+|--------|--------|
 | `file_name` | Relative path |
 | `exist_in_folder_1` | `True` / `False` |
 | `exist_in_folder_2` | `True` / `False` |
 | `size_same` | `True` / `False` / empty |
 | `content_same` | `True` / `False` / empty |
 
-By default, only files with differences are included. Use `-a` to include all files.
+Empty means not checked (sizes differ or file unreadable). By default, only files with differences are shown.
 
 ## find_duplicates.py
 
@@ -91,19 +91,19 @@ python find_duplicates.py ~/Photos -o photo_duplicates.csv
 
 CSV columns:
 
-| Column | Description |
-|--------|-------------|
-| `checksum` | BLAKE3 hash of the file content |
+| Column | Values |
+|--------|--------|
+| `checksum` | BLAKE3 hash |
 | `size` | File size in bytes |
-| `count` | Number of duplicate files |
-| `paths` | Pipe-separated list of file paths |
+| `count` | Number of duplicates |
+| `paths` | Pipe-separated file paths |
 
 ## Performance
 
 Both tools use several optimizations:
 
 - **Parallel processing** - Configurable worker threads for I/O operations
-- **Size-first filtering** - Files with unique sizes skip content comparison
+- **Size check first** - Skips content comparison when sizes differ
 - **Early exit** - Byte-for-byte comparison exits on first difference
 - **BLAKE3** - Fast cryptographic hash when checksums are needed
 

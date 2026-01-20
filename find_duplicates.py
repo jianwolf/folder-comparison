@@ -32,7 +32,7 @@ CSV_FIELDS = ['checksum', 'size', 'count', 'paths']
 
 @dataclass(slots=True)
 class FileInfo:
-    """File path and size for scanning."""
+    """File metadata: absolute path and size in bytes."""
     path: Path
     size: int
 
@@ -41,7 +41,7 @@ class FileInfo:
 
 
 def is_excluded(filename: str) -> bool:
-    """Check if file should be excluded from scanning."""
+    """Check if file should be excluded (macOS metadata files)."""
     return filename in EXCLUDED_FILES or filename.startswith(EXCLUDED_PREFIXES)
 
 

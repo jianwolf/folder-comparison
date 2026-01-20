@@ -6,10 +6,10 @@ Guidance for Claude Code when working with this repository.
 
 Two Python CLI tools for file comparison tasks:
 
-| File | Purpose |
+| Tool | Purpose |
 |------|---------|
-| `folder_comparison.py` | Compare two directories, output differences to CSV |
-| `find_duplicates.py` | Find duplicate files within one directory |
+| `folder_comparison.py` | Compare two directories, report differences to CSV |
+| `find_duplicates.py` | Find duplicate files within a directory |
 
 Both share common patterns: parallel I/O, size-first optimization, BLAKE3 checksums, macOS file exclusions.
 
@@ -59,6 +59,7 @@ scan_folder → group by size → compute_checksum (parallel) → group by check
 - `compare_bytes(path1, path2)` - Byte-for-byte comparison, early exit on difference
 - `compare_file_pair(rel_path, info1, info2)` - Orchestrates size + content comparison
 - `make_result(...)` - Create comparison result dict
+- `is_identical(result)` - Check if result represents matching files
 - `compare_folders(...)` - Main orchestrator
 
 ### find_duplicates.py specific
@@ -72,29 +73,29 @@ scan_folder → group by size → compute_checksum (parallel) → group by check
 
 ```bash
 # Basic (byte-for-byte, differences only)
-python folder_comparison.py /path/to/folder1 /path/to/folder2
+python folder_comparison.py ~/backup1 ~/backup2
 
 # Include identical files
-python folder_comparison.py folder1 folder2 --all
+python folder_comparison.py ~/backup1 ~/backup2 --all
 
-# Use checksums (for network mounts)
-python folder_comparison.py folder1 folder2 --checksum
+# Use checksums (better for network mounts)
+python folder_comparison.py ~/backup1 ~/backup2 --checksum
 
 # Custom output and workers
-python folder_comparison.py folder1 folder2 -o results.csv -w 16
+python folder_comparison.py ~/backup1 ~/backup2 -o results.csv -w 16
 ```
 
 ### find_duplicates.py
 
 ```bash
 # Basic scan
-python find_duplicates.py /path/to/folder
+python find_duplicates.py ~/Documents
 
 # Skip small files (>= 1MB only)
-python find_duplicates.py folder --min-size 1048576
+python find_duplicates.py ~/Downloads --min-size 1048576
 
 # Custom output and workers
-python find_duplicates.py folder -o dupes.csv -w 16
+python find_duplicates.py ~/Photos -o dupes.csv -w 16
 ```
 
 ## Configuration
@@ -118,10 +119,10 @@ Shared constants (defined in both files):
 | `file_name` | Relative path |
 | `exist_in_folder_1` | `True` / `False` |
 | `exist_in_folder_2` | `True` / `False` |
-| `size_same` | `True` / `False` / `None` |
-| `content_same` | `True` / `False` / `None` |
+| `size_same` | `True` / `False` / empty |
+| `content_same` | `True` / `False` / empty |
 
-`content_same=None` means not checked (sizes differ or read error).
+Empty means not checked (sizes differ or file unreadable). In Python code, these are `None`.
 
 ### find_duplicates.py
 

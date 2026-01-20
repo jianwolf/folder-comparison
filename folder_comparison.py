@@ -35,7 +35,7 @@ ComparisonResult: TypeAlias = dict[str, str | bool | None]
 
 @dataclass(slots=True)
 class FileInfo:
-    """File path and size for comparison."""
+    """File metadata: absolute path and size in bytes."""
     path: Path
     size: int
 
@@ -44,7 +44,7 @@ class FileInfo:
 
 
 def is_excluded(filename: str) -> bool:
-    """Check if file should be excluded from comparison."""
+    """Check if file should be excluded (macOS metadata files)."""
     return filename in EXCLUDED_FILES or filename.startswith(EXCLUDED_PREFIXES)
 
 
@@ -149,14 +149,15 @@ def compare_folders(folder1: Path, folder2: Path, output_csv: Path, workers: int
 
     # Scan both folders in parallel
     print("Scanning folders...")
+    print(f"  Folder 1: {folder1}")
+    print(f"  Folder 2: {folder2}")
     with ThreadPoolExecutor(max_workers=2) as executor:
         future1 = executor.submit(scan_folder, folder1)
         future2 = executor.submit(scan_folder, folder2)
         scan1 = future1.result()
         scan2 = future2.result()
 
-    print(f"  Folder 1: {len(scan1)} files")
-    print(f"  Folder 2: {len(scan2)} files")
+    print(f"  Found {len(scan1)} + {len(scan2)} files")
 
     # Categorize files using set operations
     paths1, paths2 = set(scan1), set(scan2)
