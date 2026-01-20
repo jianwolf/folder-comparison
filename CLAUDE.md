@@ -1,28 +1,70 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code when working with this repository.
 
 ## Overview
 
-Single-file Python CLI tool comparing two directories recursively, outputting CSV report with file existence, size matches, and checksum matches.
+Single-file Python CLI that compares two directories recursively, producing a CSV report of file existence, size matches, and content matches.
 
 ## Architecture
 
-The tool uses a parallel processing pipeline:
+```
+scan_folder (×2 parallel) → set operations → compare_file_pair (parallel) → CSV
+```
 
-1. **Parallel folder scanning** (`scan_folder`): Two threads scan both directories simultaneously using `os.walk`, collecting file paths and sizes into `FileInfo` dataclasses (with `slots=True` for memory efficiency). Files are filtered via `is_excluded()`.
-2. **Set operations**: Categorizes files into `only_in_1`, `only_in_2`, and `in_both` using set difference/intersection
-3. **Parallel checksum comparison** (`compare_file_pair`): ThreadPoolExecutor compares files in both folders - size checked first, BLAKE3 checksum only computed if sizes match (optimization via `compute_checksum`)
-4. **CSV output**: Results sorted by filename, columns defined in `CSV_FIELDS`. By default only differences are included; use `--all` to include identical files.
-5. **Summary**: Prints counts of files only in each folder, and same/different content breakdown
+### Pipeline
 
-## Configuration Constants
+1. **Scan**: Two threads scan directories via `os.walk`, building `FileInfo` dicts
+2. **Categorize**: Set operations split paths into `only_in_1`, `only_in_2`, `common_paths`
+3. **Compare**: ThreadPoolExecutor compares common files (size first, then content)
+4. **Output**: Write sorted CSV, print summary
 
-- `EXCLUDED_FILES` / `EXCLUDED_PREFIXES`: macOS metadata files to skip (`.DS_Store`, `._*`)
-- `READ_BUFFER_SIZE`: 1MB chunks for checksum I/O
-- `DEFAULT_WORKERS`: 8 threads for parallel comparison
-- `PROGRESS_INTERVAL`: Print progress every 500 files
-- `CSV_FIELDS`: Output column names
+### Comparison Modes
+
+| Mode | Flag | Function | Use Case |
+|------|------|----------|----------|
+| Byte-for-byte | (default) | `compare_bytes` | Local files, fastest |
+| Checksum | `--checksum` | `compute_checksum` | Network mounts, need hashes |
+
+### Result Semantics
+
+- `content_same=True`: Content verified identical
+- `content_same=False`: Content verified different
+- `content_same=None`: Not checked (sizes differ) or read error
+
+## Key Functions
+
+- `scan_folder`: Recursively collect file paths and sizes
+- `compare_file_pair`: Orchestrates size + content comparison
+- `compare_bytes`: Byte-for-byte comparison, exits early on difference
+- `compute_checksum`: BLAKE3 hash computation
+- `compare_folders`: Main orchestrator
+
+## Usage
+
+```bash
+# Basic comparison (outputs only differences)
+python folder_comparison.py /path/to/folder1 /path/to/folder2
+
+# Include identical files in output
+python folder_comparison.py folder1 folder2 --all
+
+# Use checksums (for network mounts)
+python folder_comparison.py folder1 folder2 --checksum
+
+# Custom output file and worker count
+python folder_comparison.py folder1 folder2 -o results.csv -w 16
+```
+
+## Configuration
+
+| Constant | Value | Purpose |
+|----------|-------|---------|
+| `EXCLUDED_FILES` | `.DS_Store` | macOS metadata to skip |
+| `EXCLUDED_PREFIXES` | `._` | macOS resource forks to skip |
+| `READ_BUFFER_SIZE` | 1 MB | I/O chunk size |
+| `DEFAULT_WORKERS` | 8 | Parallel comparison threads |
+| `PROGRESS_INTERVAL` | 500 | Progress update frequency |
 
 ## Git Conventions
 
